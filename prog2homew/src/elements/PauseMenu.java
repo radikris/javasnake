@@ -9,13 +9,11 @@ import javax.swing.*;
 import enumtype.Direction;
 import enumtype.STATE;
 import gameplay.Table;
-import gameplay.Table.MyKeyAdapter;
 
-public class PauseMenu {
+public class PauseMenu implements ActionListener {
 
 	public Table mytable;
 	private JFrame f;
-	static int I=0;
 
 	public PauseMenu(Table table) {
 		mytable = table;
@@ -23,13 +21,12 @@ public class PauseMenu {
 	}
 
 	public void showPause() {
-		System.out.println(I++);
-		
+
 		if (f == null) {
 			f = new JFrame();
 
 		} else {
-			
+
 		}
 		f.setUndecorated(true); // Remove title bar
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -71,10 +68,10 @@ public class PauseMenu {
 		f.setVisible(true);
 		b.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 				f.setVisible(false); // you can't see me!
 				f.dispose();
-				f=null;
+				f = null;
 				switch (list1.getSelectedIndex()) {
 				case 0: // resume
 					mytable.start();
@@ -91,10 +88,17 @@ public class PauseMenu {
 
 	}
 
-	public static void centreWindow(Window frame) {
-		Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
-		int x = (int) ((dimension.getWidth() - frame.getWidth()) / 2);
-		int y = (int) ((dimension.getHeight() - frame.getHeight()) / 2);
-		frame.setLocation(x, y);
+	public void endPause() {
+		System.out.println("pauseolodteso");
+		mytable.start();
+		f.setVisible(false);
+		f.dispose();
 	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
 }

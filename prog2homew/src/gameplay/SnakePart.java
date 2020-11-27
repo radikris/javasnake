@@ -9,50 +9,55 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import elements.Coordinate;
+import elements.DrawGUI;
 import enumtype.CoordinateType;
 
 public class SnakePart extends Marker {
 
-	private int width, height;
 	private BufferedImage snakehead;
 
-	public SnakePart(Coordinate crdinate, int SIZE) {
+	public SnakePart(Coordinate crdinate) {
 
 		super(crdinate);
-
-		width = SIZE;
-
-		height = SIZE;
+		loadimage();
 
 	}
 
-	public void tick() {
-
-	}
-
+	@Override
 	public void draw(Graphics g) {
+		// TODO Auto-generated method stub
 
 		g.setColor(new Color(33, 157, 0));
 
 		if (getCoordinates().getCtype() == CoordinateType.PLAYER) {
-			g.fillRect(getCoordinates().getX() * width, getCoordinates().getY() * height, width, height);
+			g.fillRect(getCoordinates().getX() * Coordinate.SIZE, getCoordinates().getY() * Coordinate.SIZE,
+					Coordinate.SIZE, Coordinate.SIZE);
 		} else {
-			try {
-				snakehead = ImageIO.read(getClass().getResourceAsStream("/assets/white_snakehead.png"));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			g.drawImage(snakehead, getCoordinates().getX() * width + 2, getCoordinates().getY() * height, width - 2,
-					height - 2, null);
+
+			drawmarker(g, snakehead);
 		}
 
 	}
 
 	@Override
-	public void move() {
+	public void loadimage() {
 		// TODO Auto-generated method stub
+		try {
+			snakehead = getmode() ? ImageIO.read(getClass().getResourceAsStream("/assets/white_snakehead.png"))
+					: ImageIO.read(getClass().getResourceAsStream("/assets/black_snakehead.png"));
+		} catch (IOException e) { // TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
+	@Override
+	public boolean collideProblem() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	public BufferedImage getImage() {
+		return snakehead;
 	}
 
 }

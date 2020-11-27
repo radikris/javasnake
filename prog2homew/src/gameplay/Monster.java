@@ -3,6 +3,7 @@ package gameplay;
 import java.awt.Graphics;
 
 import elements.Coordinate;
+import elements.DrawGUI;
 
 public class Monster extends Marker{
 	
@@ -15,14 +16,24 @@ public class Monster extends Marker{
 	}
 
 	@Override
-	public void move() {
+	public void draw(Graphics g) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void draw(Graphics g) {
+	public void loadimage() {
 		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean collideProblem() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+	
+	public void moveMonster() {
 		
 	}
 	

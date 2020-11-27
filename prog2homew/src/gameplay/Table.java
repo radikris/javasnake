@@ -26,7 +26,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import elements.Coordinate;
-import elements.GridBagLayoutSparse;
+import elements.MyKeyAdapter;
+//import elements.GridBagLayoutSparse;
 import elements.PauseMenu;
 import elements.ReadWrite;
 import enumtype.CoordinateType;
@@ -37,38 +38,42 @@ public class Table extends JPanel implements ActionListener, Runnable {
 
 	private static final long serialVersionUID = 8806551928421848891L; // avoid compile warning
 	int rownum, colnum;
-	Direction direction = null;
+	public Direction direction = null;
+
 	private Thread thread;
 	private boolean running = false;
 
-	public int snakelength = 0;
-	boolean gamestarted = false;
-	public ArrayList<Coordinate> snakeCoordinate = new ArrayList<Coordinate>();
-	private Apple apple;
-	public List<SnakePart> snake = new ArrayList<SnakePart>();
-	private List<Apple> apples = new ArrayList<Apple>();
-	private List<Wall> walls = new ArrayList<Wall>();
-	int size = 1;
-	public static String username;
-	public ReadWrite readwrite = new ReadWrite("players.txt");
 	static boolean firstgame = true;
-	MyKeyAdapter keyadapter = new MyKeyAdapter(this);
 
+	private Apple apple;
+
+	public SnakePartList snakelist = new SnakePartList();
+	public RandomController wallandapplelist = new RandomController();
 	int xCoor, yCoor;
 
-	public static STATE State = STATE.MENU;
+	public static String username;
+	public ReadWrite readwrite = new ReadWrite("example.json");
+	MyKeyAdapter keyadapter = new MyKeyAdapter(this);
 
+	public static STATE State = STATE.MENU;
+	public static Color colormode = Color.white;
 	BackGround background;
 
 	public Table() {
 		initTable();
 	}
 
-	private int ticks = 0;
+	public Table(int rownum, int colnum) {
+		this.rownum = rownum;
+		this.colnum = colnum;
+		initTable();
+	}
+
+	public int ticks = 0;
 
 	private void initTable() {
 		initMarkers();
-		snakeCoordinate = getSnake(snakelength);
+
 		for (KeyListener l : getKeyListeners()) {
 			if (l instanceof KeyAdapter) {
 				removeKeyListener(l);
@@ -82,24 +87,17 @@ public class Table extends JPanel implements ActionListener, Runnable {
 		try {
 			background = new BackGround(State, colnum, rownum, this);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+
 			e.printStackTrace();
 		}
 
 	}
 
-	@Override
-	public void paintComponent(Graphics g) {
-		super.paintComponent(g);
-		System.out.println("paintcomet");
-		paint(g);
-	}
-
 	public void paint(Graphics g) {
 
+		g.setColor(Color.BLACK);
 		g.clearRect(0, 0, colnum, rownum);
 		if (State == STATE.GAME) {
-
 			try {
 				background.render(g);
 			} catch (Exception e) {
@@ -107,26 +105,16 @@ public class Table extends JPanel implements ActionListener, Runnable {
 				e.printStackTrace();
 			}
 
-			for (int i = 0; i < snake.size(); i++) {
-				if (i == snake.size() - 1) {
-					snake.get(i).getCoordinates().setCtype(CoordinateType.PLAYERHEAD);
-				} else {
-					snake.get(i).getCoordinates().setCtype(CoordinateType.PLAYER);
-				}
-				snake.get(i).draw(g);
+			snakelist.paintSnake(g);
+
+			for (int i = 0; i < wallandapplelist.getAppleandWalls().size(); i++) {
+				wallandapplelist.getAppleorWall(i).draw(g);
 			}
 
-			for (int i = 0; i < apples.size(); i++) {
-				apples.get(i).draw(g);
-			}
-
-			for (int i = 0; i < walls.size(); i++) {
-				walls.get(i).draw(g);
-			}
 			Font title = new Font("Monospaced Bold", Font.BOLD, 20);
 			g.setFont(title);
 			g.setColor(Color.BLACK);
-			g.drawString("Score: " + getSnakeSize().toString(), 5, 20);
+			g.drawString("Score: " + snakelist.getSnakeSize().toString(), 5, 20);
 
 		} else {
 			try {
@@ -140,18 +128,13 @@ public class Table extends JPanel implements ActionListener, Runnable {
 	}
 
 	public void restart() {
-		// requestFocus();
 		State = STATE.GAME;
 		background.setState(State);
 		running = true;
 
-		snake.clear();
-		size = 1;
-		apples.clear();
-		walls.clear();
-		snake = new ArrayList<SnakePart>();
-		apples = new ArrayList<Apple>();
-		walls = new ArrayList<Wall>();
+		snakelist.ResetSnake();
+		wallandapplelist.resetWallandApple();
+
 		direction = null;
 		table = new Coordinate[Coordinate.SIZE][Coordinate.SIZE];
 		initTable();
@@ -167,20 +150,32 @@ public class Table extends JPanel implements ActionListener, Runnable {
 
 		running = true;
 		thread = new Thread(this, "Game Loop");
-		if (snake.size() == 0) {
-			Coordinate cs = randomandSetandDelete(CoordinateType.PLAYERHEAD, table);
+		if (snakelist.getSnake().size() == 0) {
+
+			Coordinate whereapple = Marker.randomandSetandDelete(CoordinateType.COIN, table);
+			apple = new Apple(whereapple);
+
+			try {
+				wallandapplelist.addRandom(apple);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			Coordinate cs = Marker.randomandSetandDelete(CoordinateType.PLAYERHEAD, table);
 			xCoor = cs.getX();
 			yCoor = cs.getY();
-			SnakePart b = new SnakePart(cs, Coordinate.SIZE);
-			snake.add(b);
+			SnakePart b = new SnakePart(cs);
+			// snake.add(b);
+			snakelist.addSnakePart(b);
 		}
 
 		thread.start();
 	}
 
-	void stop() throws IOException {
+	public void stop() throws IOException {
 		running = false;
-		Integer s = snake.size();
+		Integer s = snakelist.getSnake().size();
 		if (thread != null) {
 			try {
 				thread.join();
@@ -198,7 +193,7 @@ public class Table extends JPanel implements ActionListener, Runnable {
 			if (direction != null)
 				try {
 					move();
-				} catch (IOException e) {
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -206,39 +201,14 @@ public class Table extends JPanel implements ActionListener, Runnable {
 		}
 	}
 
-	public Table(int rownum, int colnum) {
-		this.rownum = rownum;
-		this.colnum = colnum;
-		initTable();
-	}
+	public Coordinate table[][] = new Coordinate[Coordinate.SIZE][Coordinate.SIZE];
 
-	Coordinate table[][] = new Coordinate[Coordinate.SIZE][Coordinate.SIZE];
+	public void move() throws Exception {
 
-	public Coordinate randomandSetandDelete(CoordinateType ctype, Coordinate table[][]) {
-		ArrayList<Coordinate> emptycoordinate = new ArrayList<Coordinate>();
-
-		for (int j = 0; j < Coordinate.SIZE; j++) {
-
-			for (int i = 0; i < Coordinate.SIZE; i++) {
-				if (table[i][j].getCtype() == CoordinateType.EMPTY) {
-					emptycoordinate.add(table[i][j]);
-				}
-			}
-
-		}
-		int randomMark = ThreadLocalRandom.current().nextInt(0, emptycoordinate.size() - 1);
-
-		table[emptycoordinate.get(randomMark).getX()][emptycoordinate.get(randomMark).getY()].setCtype(ctype);
-
-		emptycoordinate.remove(randomMark);
-		return new Coordinate(emptycoordinate.get(randomMark).getX(), emptycoordinate.get(randomMark).getY(), ctype);
-	}
-
-	private void move() throws IOException {
 		if (State == STATE.GAME) {
 
 			ticks++;
-			int substraction = snake.size() > 18 ? 100000 * 18 : 100000 * snake.size();
+			int substraction = snakelist.getSnake().size() > 18 ? 100000 * 18 : 100000 * snakelist.getSnake().size();
 			if (ticks > 2500000 - substraction) {
 				switch (direction) {
 				case LEFT:
@@ -255,47 +225,46 @@ public class Table extends JPanel implements ActionListener, Runnable {
 					break;
 				}
 
-				SnakePart b = new SnakePart(new Coordinate(xCoor, yCoor, CoordinateType.PLAYER), Coordinate.SIZE);
-				snake.add(b);
+				snakelist.moveSnake(xCoor, yCoor);
 
-				if (snake.size() > size)
-					snake.remove(0);
 				ticks = 0;
 
-				for (int i = 0; i < apples.size(); i++) {
-					if (xCoor == apples.get(i).getCoordinates().getX()
-							&& yCoor == apples.get(i).getCoordinates().getY()) {
-						size++;
-						apples.remove(i);
-						Coordinate whereapple = randomandSetandDelete(CoordinateType.COIN, table);
-						apple = new Apple(whereapple, Coordinate.SIZE);
-						apples.add(apple);
-						i++;
-					}
+				if (apple.getCoordinates().getX() == xCoor && apple.getCoordinates().getY() == yCoor) {
+					// size++; // noveljuk a kigyo "hosszat", kovetkezo lepesben nem toroljuk ki az
+					// utolsot
+
+					snakelist.addSize(apple.appleWorth);
+
+					wallandapplelist.removeByCoordinate(apple.getCoordinates().getX(), apple.getCoordinates().getY());
+
+					Coordinate whereapple = Marker.randomandSetandDelete(CoordinateType.COIN, table);
+					apple = new Apple(whereapple);
+
+					wallandapplelist.addRandom(apple);
+
 				}
 
-				for (int i = 0; i < snake.size(); i++) {
-					table[snake.get(i).coordinates.getX()][snake.get(i).coordinates.getY()]
+				for (int i = 0; i < snakelist.getSnake().size(); i++) {
+					table[snakelist.getSnakePart(i).coordinates.getX()][snakelist.getSnakePart(i).coordinates.getY()]
 							.setCtype(CoordinateType.PLAYER);
-				}
-				if (apples.size() > 0)
-					table[apples.get(0).coordinates.getX()][apples.get(0).coordinates.getY()]
-							.setCtype(CoordinateType.COIN);
 
-				detectCollosion(snake);
-				detectCollosion(walls);
+				}
+
+				detectCollosion(snakelist.getSnake());
+				detectCollosion(wallandapplelist.getAppleandWalls());
 			}
 
 		}
 	}
 
-	public void detectCollosion(List<? extends Marker> list) throws IOException {
+	public void detectCollosion(List<? extends Marker> list) throws Exception {
 
 		for (int i = 0; i < list.size(); i++) {
 			if (xCoor == list.get(i).getCoordinates().getX() && yCoor == list.get(i).getCoordinates().getY()) {
-				if (i != list.size() - 1) {
+				if (i != list.size() - 1 && list.get(i).collideProblem()) {
+
 					System.out.println("ez vege testverem");
-					JLabel label = new JLabel("Game Over # " + snake.size() + " points");
+					JLabel label = new JLabel("Game Over # " + snakelist.getSnake().size() + " points");
 					label.setFont(new Font("Brush Script MT", Font.BOLD, 25));
 					JOptionPane.showMessageDialog(null, label, "GAMEOVER", JOptionPane.CANCEL_OPTION);
 
@@ -308,7 +277,7 @@ public class Table extends JPanel implements ActionListener, Runnable {
 						e.printStackTrace();
 					}
 					repaint();
-					Integer s = snake.size();
+					Integer s = snakelist.getSnake().size();
 					readwrite.writeFile(username, s.toString());
 					stop();
 
@@ -317,7 +286,7 @@ public class Table extends JPanel implements ActionListener, Runnable {
 		}
 	}
 
-	private void initMarkers() {
+	public void initMarkers() {
 
 		for (int j = 0; j < Coordinate.SIZE; j++) {
 
@@ -325,7 +294,13 @@ public class Table extends JPanel implements ActionListener, Runnable {
 				if (i == 0 || j == 0 || i == Coordinate.SIZE - 1 || j == Coordinate.SIZE - 1) {
 					table[i][j] = new Coordinate(i, j, CoordinateType.WALL);
 					Wall wall = new Wall(new Coordinate(i, j, CoordinateType.WALL), Coordinate.SIZE);
-					walls.add(wall);
+
+					try {
+						wallandapplelist.addRandom(wall);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				} else
 					table[i][j] = new Coordinate(i, j, CoordinateType.EMPTY);
 
@@ -334,113 +309,72 @@ public class Table extends JPanel implements ActionListener, Runnable {
 		}
 
 		for (int howmuch = 0; howmuch < 15; howmuch++) {
-			Coordinate wallc = randomandSetandDelete(CoordinateType.WALL, table);
+			Coordinate wallc = Marker.randomandSetandDelete(CoordinateType.WALL, table);
 			Wall wall = new Wall(wallc, Coordinate.SIZE);
-			walls.add(wall);
+
+			try {
+				wallandapplelist.addRandom(wall);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			table[wallc.getX()][wallc.getY()].setCtype(CoordinateType.WALL);
 
 		}
 
-		Coordinate whereapple = randomandSetandDelete(CoordinateType.COIN, table);
-		apple = new Apple(whereapple, Coordinate.SIZE);
-		apples = new ArrayList<Apple>();
-		apples.add(apple);
-		System.out.println(apples.get(0).coordinates.getX() + " : " + apples.get(0).coordinates.getY());
-
-	}
-
-	public ArrayList<Coordinate> getSnake(int slength) {
-		slength = 0;
-		int ph = 0;
-		ArrayList<Coordinate> snakecoordinates = new ArrayList<Coordinate>();
-		for (int j = 0; j < Coordinate.SIZE; j++) {
-
-			for (int i = 0; i < Coordinate.SIZE; i++) {
-				if (table[i][j].getCtype() == CoordinateType.PLAYER) {
-					slength++;
-
-					snakecoordinates.add(table[i][j]);
-				} else if (table[i][j].getCtype() == CoordinateType.PLAYERHEAD) {
-					slength++;
-					// System.out.print(++ph);
-					snakecoordinates.add(0, table[i][j]);
-				}
-			}
-
-		}
-
-		return snakecoordinates;
-	}
-
-	public class MyKeyAdapter extends KeyAdapter {
-
-		Table mytable;
-
-		MyKeyAdapter(Table table) {
-			this.mytable = table;
-		}
-
-		@Override
-		public void keyPressed(KeyEvent e) {
-
-			if (State == STATE.GAME) {
-				snakeCoordinate = getSnake(snakelength);
-
-				switch (e.getKeyCode()) {
-
-				case KeyEvent.VK_LEFT:
-
-					if (direction != Direction.RIGHT) {
-						direction = Direction.LEFT;
-					}
-					break;
-				case KeyEvent.VK_RIGHT:
-
-					if (direction != Direction.LEFT) {
-						direction = Direction.RIGHT;
-					}
-					break;
-				case KeyEvent.VK_UP:
-
-					if (direction != Direction.DOWN) {
-						direction = Direction.UP;
-					}
-					break;
-				case KeyEvent.VK_DOWN:
-
-					if (direction != Direction.UP) {
-						direction = Direction.DOWN;
-					}
-					break;
-				case KeyEvent.VK_ESCAPE:
-
-					PauseMenu pause = new PauseMenu(mytable);
-					pause.showPause();
-					try {
-						stop();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					break;
-
-				}
-
-			}
-
-		}
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
 		System.out.println("actionperformed");
-		// move();
 		repaint();
 	}
 
-	public Integer getSnakeSize() {
-		return snake.size();
+	public void changeCurrentMode() {
+		if (apple != null)
+			apple.loadimage();
+		if (snakelist.getSnake().size() > 0)
+			snakelist.getSnakePart(snakelist.getSnakeSize() - 1).loadimage();
+	}
+
+	public void setColorMode(Color colorm) {
+		this.colormode = colorm;
+		boolean lightmode = colorm == Color.black ? false : true;
+		Marker.setmode(lightmode);
+		changeCurrentMode(); // igy az adott blokk alma és kígyófeje is megváltozik egybõl, különben nem
+								// töltené újra a képet
+								// mert ha játék közben váltjuk, akkor az elõtte betöltött kép látszódna (hiába
+								// változik a colormode)
+		repaint();
+	}
+
+	public boolean getGameRunning() {
+		return running;
+	}
+
+	public void setXcoor(int x) {
+		xCoor = x;
+	}
+
+	public void setYcoor(int y) {
+		yCoor = y;
+	}
+
+	public Thread getThread() {
+		return thread;
+	}
+
+	public Apple getApple() {
+		return apple;
+	}
+
+	public void setApple(Apple a) {
+		apple = a;
+	}
+
+	public void setSnakelist(SnakePartList s) {
+		snakelist = s;
 	}
 
 }

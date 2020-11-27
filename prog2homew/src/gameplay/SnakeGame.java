@@ -1,44 +1,49 @@
 package gameplay;
 
-import java.applet.Applet;
-import java.applet.AudioClip;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.EventQueue;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.InputStream;
 
+import javax.swing.AbstractButton;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
+import elements.MyMenuBar;
 import jaco.mp3.player.MP3Player;
 
 @SuppressWarnings("deprecation")
 public class SnakeGame extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 177836389200929559L; // avoid compile warning
-	boolean pause = false; // the button to switch from pause to not pause
 	private JButton pauseandResume = new JButton("Pause");
-	public Thread musicThread = new Thread();
 
-	static MP3Player mp3player = new MP3Player(
-			new File("C:\\Java projects\\prog2homew\\src\\assets/background_music.mp3"));
+	static MP3Player mp3player = new MP3Player(new File("src/assets/background_music.mp3"));
 
 	public SnakeGame() {
 		initUI();
 	}
 
+	public static Table mytable;
+
 	private void initUI() {
 		mp3player.setRepeat(true);
 		mp3player.setShuffle(true);
 		mp3player.play();
-
-		add(new Table(676, 676));
-		pauseandResume.setForeground(Color.RED);
-		pauseandResume.addActionListener(this);
+		mytable = new Table(676 + 23, 676);
+		add(mytable);
 
 		setResizable(false);
 
@@ -53,6 +58,11 @@ public class SnakeGame extends JFrame implements ActionListener {
 
 		EventQueue.invokeLater(() -> {
 			JFrame ex = new SnakeGame();
+
+			MyMenuBar menuBarom = new MyMenuBar(mp3player, mytable);
+
+			ex.setJMenuBar(menuBarom);
+
 			ex.setVisible(true);
 		});
 
@@ -60,13 +70,8 @@ public class SnakeGame extends JFrame implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		pause = !pause;
-		// update button text accordingly
-		System.out.println("This will be printed");
-		if (pause)
-			pauseandResume.setText("Resume");
-		else
-			pauseandResume.setText("Pause");
+		// TODO Auto-generated method stub
 
 	}
+
 }

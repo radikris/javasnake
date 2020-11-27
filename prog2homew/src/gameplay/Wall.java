@@ -10,14 +10,25 @@ import javax.imageio.ImageIO;
 import elements.Coordinate;
 
 public class Wall extends Marker {
-	public int width, height;
+
 	// private Coordinate coordinate;
 	private BufferedImage wall;
 
 	public Wall(Coordinate coordinate, int tileSize) {
 		super(coordinate);
-		width = tileSize;
-		height = tileSize;
+
+		loadimage();
+	}
+
+	public void draw(Graphics g) {
+
+		drawmarker(g, wall);
+
+	}
+
+	@Override
+	public void loadimage() {
+		// TODO Auto-generated method stub
 		try {
 			wall = ImageIO.read(getClass().getResourceAsStream("/assets/wall.png"));
 		} catch (IOException e) {
@@ -26,19 +37,10 @@ public class Wall extends Marker {
 		}
 	}
 
-	public void tick() {
-
-	}
-
-	public void draw(Graphics g) {
-		g.drawImage(wall, getCoordinates().getX() * width, getCoordinates().getY() * height, width, height, null);
-
-	}
-
 	@Override
-	public void move() {
+	public boolean collideProblem() {
 		// TODO Auto-generated method stub
-
+		return true;
 	}
 
 }

@@ -35,14 +35,11 @@ public class BackGround extends Canvas {
 	private STATE State;
 	private int width, height;
 	private BufferedImage menubackground = null;
-	private BufferedImage gamebackground = null;
+	//private BufferedImage gamebackground = null;
 	private Table table;
 
 	private Image gif;
-	public Rectangle playButton = new Rectangle(width / 2 + 100, 150, 210, 50);
-	public Rectangle scoreButton = new Rectangle(width / 2 + 100, 220, 210, 50);
-	public Rectangle quitButton = new Rectangle(width / 2 + 100, 290, 210, 50);
-
+	
 	BackGround(STATE cstate, int colnum, int rownum, Table table) throws Exception {
 		this.State = cstate;
 		this.width = colnum;
@@ -61,8 +58,7 @@ public class BackGround extends Canvas {
 
 	public void render(Graphics g) throws Exception {
 
-		if (State == STATE.MENU) {
-			// table.removeAll();
+		if (table.State == STATE.MENU) {
 
 			g.drawImage(menubackground, 0, 0, width, height, null);
 			if (gif != null) {
@@ -72,7 +68,7 @@ public class BackGround extends Canvas {
 
 			Font title = new Font("Brush Script MT", Font.BOLD, 80);
 			g.setFont(title);
-			g.setColor(Color.white);
+			g.setColor(table.colormode);
 			g.drawString("Snakeyy", 30, 100);
 
 			Graphics2D g2d = (Graphics2D) g;
@@ -84,6 +80,7 @@ public class BackGround extends Canvas {
 
 			Font small = new Font("Century", Font.ITALIC, 20);
 			g.setFont(small);
+
 			table.readwrite.readFile();
 			int size_or_five = table.readwrite.getNamepoint().size() > 5 ? 5 : table.readwrite.getNamepoint().size();
 			for (int i = 0; i < size_or_five; i++) {
@@ -101,18 +98,31 @@ public class BackGround extends Canvas {
 				public void actionPerformed(ActionEvent e) {
 
 					if (table.State == State.MENU) {
-						table.gamestarted = true;
+						
 						table.requestFocus();
 						setState(State.GAME);
 						JLabel label = new JLabel("What is your name?");
 						label.setFont(new Font("Brush Script MT", Font.BOLD, 25));
-						table.username = JOptionPane.showInputDialog(null, label, "Username",
-								JOptionPane.QUESTION_MESSAGE);
-						if (table.username != null && table.username.length() != 0) {
 
+						while (true) {
+							table.username = JOptionPane.showInputDialog(null, label, "Username",
+									JOptionPane.QUESTION_MESSAGE);
+							if (table.username == null || table.username.length() < 5) {
+								JOptionPane.showMessageDialog(null, "Invalid Input\nPlease enter at least 5 characters", "Cannot Cancel",
+										JOptionPane.ERROR_MESSAGE);
+								continue;
+							} else {
+								break;
+							}
+						}
+
+						if (table.username != null && table.username.length() > 4) {
+							table.username = table.username.replaceAll("\\s+", "");
 							if (table.firstgame) {
+								System.out.println("star");
 								table.start();
 							} else {
+								System.out.println("restar");
 								table.restart();
 							}
 
@@ -123,14 +133,11 @@ public class BackGround extends Canvas {
 			table.add(new JLabel());
 
 		} else {
-			// table.removeAll();
-			g.setColor(Color.GREEN);
 
-			Integer sl = table.getSnakeSize();
-			table.getSnake(sl);
-			// g.drawString(sl.toString(), 50, 100);
-
+			g.setColor(table.colormode);
+			g.fillRect(0, 0, width, height);
 			g.setColor(Color.DARK_GRAY);
+
 			for (int i = 0; i < height; i += Coordinate.SIZE) {
 				g.drawLine(i, 0, i, height);
 			}
@@ -140,9 +147,7 @@ public class BackGround extends Canvas {
 			}
 
 		}
-		/*
-		 * table.removeAll(); table.revalidate(); table.repaint();
-		 */
+
 	}
 
 	public void setState(STATE state) {
